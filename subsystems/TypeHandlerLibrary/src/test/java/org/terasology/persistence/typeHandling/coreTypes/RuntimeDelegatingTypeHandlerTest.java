@@ -51,17 +51,18 @@ public class RuntimeDelegatingTypeHandlerTest {
         configureMockSerializer(subTypeHandler);
 
         this.typeHandlerLibrary = typeHandlerLibrary;
-        when(typeHandlerLibrary.getTypeHandler(baseType)).thenReturn(Optional.of(baseTypeHandler));
-        when(typeHandlerLibrary.getTypeHandler(subType)).thenReturn(Optional.of(subTypeHandler));
+        // We must mock `getTypeHandler(Type)`, not only `getTypeHandler(Class<>)`
+        when(typeHandlerLibrary.getTypeHandler((Type) baseType))
+                .thenReturn(Optional.of(baseTypeHandler));
+        when(typeHandlerLibrary.getTypeHandler((Type) subType))
+                .thenReturn(Optional.of(subTypeHandler));
 
-        when(sandbox.findSubTypeOf(subType.getName(), baseType)).thenReturn(Optional.of(subType));
-
-//        typeHandlerLibrary = spy(new MyTypeHandlerLibrary(sandbox));
-//
-//        typeHandlerLibrary.addTypeHandler(Base.class, baseTypeHandler);
-//        typeHandlerLibrary.addTypeHandler(Sub.class, subTypeHandler);
-
+        when(sandbox.findSubTypeOf(subType.getName(), baseType))
+                .thenReturn(Optional.of(subType));
+        when(sandbox.getSubTypeIdentifier(subType, baseType))
+                .thenReturn(subType.getName());
         TypeHandlerContext context = new TypeHandlerContext(typeHandlerLibrary, sandbox);
+
         runtimeDelegatingTypeHandler = new RuntimeDelegatingTypeHandler<>(
                 baseTypeHandler, TypeInfo.of(Base.class), context);
     }
@@ -78,8 +79,6 @@ public class RuntimeDelegatingTypeHandlerTest {
     @Test
     void testSerializeBase() {
         PersistedDataSerializer serializer = mock(PersistedDataSerializer.class);
-//        when(serializer.serialize(any(String.class)))
-//                .then(invocation -> new PersistedString((String) invocation.getArguments()[0]));
 
         Base base = new Base();
         runtimeDelegatingTypeHandler.serialize(base, serializer);
@@ -172,11 +171,4 @@ public class RuntimeDelegatingTypeHandlerTest {
     }
 
     private abstract static class SubHandler extends TypeHandler<Sub> { }
-
-//    // subclass to allow access to the constructor that takes a sandbox
-//    private static class MyTypeHandlerLibrary extends TypeHandlerLibrary {
-//        MyTypeHandlerLibrary(SerializationSandbox sandbox) {
-//            super(sandbox);
-//        }
-//    }
 }
